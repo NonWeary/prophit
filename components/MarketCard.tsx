@@ -24,6 +24,9 @@ interface MarketCardProps {
   hasConfirmationBias: boolean
   firstYesBetPlaced: boolean
   resolveDelay?: number // ms delay before showing result animation
+  // Fix system (Story Mode)
+  isFixed?: boolean
+  fixedOutcome?: 'YES' | 'NO' | null
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -52,6 +55,8 @@ export default function MarketCard({
   hasConfirmationBias,
   firstYesBetPlaced,
   resolveDelay = 0,
+  isFixed = false,
+  fixedOutcome = null,
 }: MarketCardProps) {
   const [selectedPrediction, setSelectedPrediction] = useState<'YES' | 'NO' | null>(
     bet?.prediction ?? null
@@ -154,6 +159,11 @@ export default function MarketCard({
           <p className="text-[#6a6a9a] text-xs italic leading-relaxed border-l-2 border-[#1e1e3a] pl-3">
             {result.flavorText}
           </p>
+          {result.wasFixed && result.fixFlavorText && (
+            <p className="mt-2 text-[#ff4444]/80 text-xs italic leading-relaxed border-l-2 pl-3" style={{ borderColor: '#2a0808' }}>
+              {result.fixFlavorText}
+            </p>
+          )}
         </div>
 
         {/* Bet summary */}
@@ -223,6 +233,23 @@ export default function MarketCard({
           : 'border-[#ff4444]/50 bg-[#0e0e1a]'
         : 'border-[#1e1e3a] bg-[#0e0e1a]'
     }`}>
+      {/* Fix indicator */}
+      {isFixed && fixedOutcome && (
+        <div
+          className="px-4 py-1.5 flex items-center gap-2 text-xs border-b"
+          style={{ background: 'rgba(255,68,68,0.06)', borderColor: '#2a0808' }}
+        >
+          <span style={{ color: '#ff4444' }}>⚠ FIXED →</span>
+          <span
+            className="font-bold"
+            style={{ color: fixedOutcome === 'YES' ? '#00ff88' : '#ff4444' }}
+          >
+            {fixedOutcome}
+          </span>
+          <span style={{ color: '#3a3a5c' }}>GUARANTEED</span>
+        </div>
+      )}
+
       {/* Category + Title */}
       <div className="px-4 pt-4 pb-2">
         <div className="text-[6px] uppercase tracking-widest mb-1.5" style={{ color: catColor }}>

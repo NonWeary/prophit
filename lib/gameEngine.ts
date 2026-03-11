@@ -19,6 +19,15 @@ export interface MarketResult {
   baseGain: number
   bonusGain: number
   appliedRelics: string[]
+  // Fix metadata
+  wasFixed?: boolean
+  fixFlavorText?: string | null
+}
+
+export interface FixInfo {
+  marketId: string
+  guaranteedOutcome: 'YES' | 'NO'
+  flavorText: string
 }
 
 export interface RoundSummary {
@@ -64,7 +73,8 @@ export function resolveRound(
   markets: Market[],
   bets: Record<string, Bet>,
   relicIds: string[],
-  consecutiveCorrect: number
+  consecutiveCorrect: number,
+  fixInfo?: FixInfo | null
 ): Omit<RoundSummary, 'roundStartBonus'> {
   let newConsecutiveCorrect = consecutiveCorrect
   let totalNetChange = 0
@@ -72,13 +82,22 @@ export function resolveRound(
   const results: MarketResult[] = []
 
   for (const market of markets) {
-    const outcome = resolveOutcome(market.baseProbability)
+    // Determine outcome — fixed markets always resolve to guaranteedOutcome
+    const isFixed = fixInfo?.marketId === market.id
+    const outcome: 'YES' | 'NO' = isFixed
+      ? fixInfo!.guaranteedOutcome
+      : resolveOutcome(market.baseProbability)
+
     const flavorText = outcome === 'YES' ? market.yesFlavorText : market.noFlavorText
     const bet = bets[market.id] ?? null
     const appliedRelics: string[] = []
 
     if (!bet) {
-      results.push({ market, outcome, flavorText, bet: null, netChange: 0, baseGain: 0, bonusGain: 0, appliedRelics })
+      results.push({
+        market, outcome, flavorText, bet: null,
+        netChange: 0, baseGain: 0, bonusGain: 0, appliedRelics,
+        wasFixed: isFixed, fixFlavorText: isFixed ? fixInfo!.flavorText : null,
+      })
       continue
     }
 
@@ -91,31 +110,27 @@ export function resolveRound(
     }
 
     // ── Hedge Fund Brain ──────────────────────────────────────────
-    // Split bet 50/50. Calculate both sides.
     if (hasRelic(relicIds, 'hedge_fund_brain')) {
       appliedRelics.push('hedge_fund_brain')
       const halfWager = Math.floor(bet.wager / 2)
       const otherHalfWager = bet.wager - halfWager
-      const chosenWins = bet.prediction === outcome
       const chosenProb = bet.prediction === 'YES' ? market.baseProbability : 1 - market.baseProbability
       const otherProb = 1 - chosenProb
+      const chosenWins = bet.prediction === outcome
 
       let netChange = 0
       if (chosenWins) {
-        // chosen side wins: gain (halfWager / chosenProb - halfWager), lose otherHalfWager
         netChange = Math.floor(halfWager * (1 / chosenProb - 1)) - otherHalfWager
       } else {
-        // chosen side loses: lose halfWager, gain (otherHalfWager / otherProb - otherHalfWager)
         netChange = Math.floor(otherHalfWager * (1 / otherProb - 1)) - halfWager
       }
 
       let bonusGain = 0
-      // Hot Streak applies to hedge wins too
       if (hasRelic(relicIds, 'hot_streak') && newConsecutiveCorrect > 1) {
-        const streakRelic = getRelicById('hot_streak')!
+        const relicData = getRelicById('hot_streak')!
         const bonus = Math.min(
-          (newConsecutiveCorrect - 1) * streakRelic.effect.params.bonusPerStreak,
-          streakRelic.effect.params.maxBonus
+          (newConsecutiveCorrect - 1) * relicData.effect.params.bonusPerStreak,
+          relicData.effect.params.maxBonus
         )
         if (netChange > 0) {
           bonusGain = Math.floor(netChange * bonus)
@@ -126,28 +141,29 @@ export function resolveRound(
 
       if (netChange < 0) roundLoss += Math.abs(netChange)
       totalNetChange += netChange
-      results.push({ market, outcome, flavorText, bet, netChange, baseGain: netChange - bonusGain, bonusGain, appliedRelics })
+      results.push({
+        market, outcome, flavorText, bet, netChange,
+        baseGain: netChange - bonusGain, bonusGain, appliedRelics,
+        wasFixed: isFixed, fixFlavorText: isFixed ? fixInfo!.flavorText : null,
+      })
       continue
     }
 
     // ── Standard resolution ──────────────────────────────────────
     if (!won) {
-      let loss = bet.wager
+      const loss = bet.wager
       roundLoss += loss
       totalNetChange -= loss
-      results.push({ market, outcome, flavorText, bet, netChange: -loss, baseGain: -loss, bonusGain: 0, appliedRelics })
+      results.push({
+        market, outcome, flavorText, bet, netChange: -loss,
+        baseGain: -loss, bonusGain: 0, appliedRelics,
+        wasFixed: isFixed, fixFlavorText: isFixed ? fixInfo!.flavorText : null,
+      })
       continue
     }
 
     // Player won — calculate payout
-    let effectiveWager = bet.wager
-
-    // Confirmation Bias: YES bets cost 50% less, so gain is on the reduced wager
-    // (the cost reduction was applied at bet-placement; we just compute gain on effective wager)
-    // Actually the "cost" reduction means they wagered less to get the same slot.
-    // We calculate gain on the actual wager placed.
-
-    let baseGain = calculateNetGain(effectiveWager, market.baseProbability, bet.prediction)
+    let baseGain = calculateNetGain(bet.wager, market.baseProbability, bet.prediction)
     let bonusGain = 0
 
     // Contrarian: +75% if betting NO on a market with baseProbability > 0.5
@@ -175,7 +191,10 @@ export function resolveRound(
 
     const netChange = baseGain + bonusGain
     totalNetChange += netChange
-    results.push({ market, outcome, flavorText, bet, netChange, baseGain, bonusGain, appliedRelics })
+    results.push({
+      market, outcome, flavorText, bet, netChange, baseGain, bonusGain, appliedRelics,
+      wasFixed: isFixed, fixFlavorText: isFixed ? fixInfo!.flavorText : null,
+    })
   }
 
   return {
@@ -205,7 +224,6 @@ export function effectiveWager(
 
 export function getCrowdHint(market: Market): { leans: 'YES' | 'NO'; confidence: 'high' | 'medium' | 'low' } {
   const p = market.baseProbability
-  // Add small noise to make it feel organic
   const noise = (Math.random() - 0.5) * 0.08
   const adjusted = Math.max(0.1, Math.min(0.9, p + noise))
   const leans: 'YES' | 'NO' = adjusted > 0.5 ? 'YES' : 'NO'
