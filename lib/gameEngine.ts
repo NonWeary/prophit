@@ -3,6 +3,15 @@ import { calculateNetGain } from './markets'
 import type { Relic } from './relics'
 import { getRelicById } from './relics'
 
+// Minimum wager per chapter in Story Mode
+export const CHAPTER_BLINDS: Record<1 | 2 | 3 | 4 | 5, number> = {
+  1: 10,
+  2: 25,
+  3: 50,
+  4: 100,
+  5: 200,
+}
+
 export interface Bet {
   prediction: 'YES' | 'NO'
   wager: number

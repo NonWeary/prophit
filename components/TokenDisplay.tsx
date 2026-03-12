@@ -50,9 +50,9 @@ export default function TokenDisplay({ tokens, showDelta, className = '' }: Toke
 
   return (
     <div className={`relative inline-flex items-center gap-2 ${className}`}>
-      <span className="text-[#6a6a9a] text-xs uppercase tracking-widest">TOKENS</span>
+      <span className="text-[#6A8AB4] text-xs uppercase tracking-widest">TOKENS</span>
       <span
-        className={`text-[#00ff88] font-bold tabular-nums ${bumping ? 'animate-token-bump' : ''}`}
+        className={`text-[#00FF88] font-bold tabular-nums ${bumping ? 'animate-token-bump' : ''}`}
         style={{ fontFamily: 'var(--font-mono)' }}
       >
         {displayed.toLocaleString()}
@@ -60,7 +60,7 @@ export default function TokenDisplay({ tokens, showDelta, className = '' }: Toke
       {showDelta && delta !== null && (
         <span
           className={`absolute -top-5 right-0 text-xs font-bold animate-slide-up ${
-            delta > 0 ? 'text-[#00ff88]' : 'text-[#ff4444]'
+            delta > 0 ? 'text-[#00FF88]' : 'text-[#FF4444]'
           }`}
         >
           {delta > 0 ? `+${delta}` : delta}

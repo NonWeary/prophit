@@ -158,9 +158,72 @@ export function getFixById(id: string): Fix | undefined {
   return FIXES.find(f => f.id === id)
 }
 
-// Returns fixes available in the shop at the end of currentChapter
-// (i.e., fixes that target the next chapter's markets)
-export function getFixesForShop(currentChapter: number): Fix[] {
-  const nextChapter = currentChapter + 1
-  return FIXES.filter(f => f.targetChapter === nextChapter)
+// Returns fixes that target the given chapter's markets
+export function getFixesForShop(chapter: number): Fix[] {
+  return FIXES.filter(f => f.targetChapter === chapter)
+}
+
+// ── FTC Interest System ─────────────────────────────────────────
+
+export interface FtcPenalty {
+  id: string
+  name: string
+  /** Bureaucratic boilerplate shown in the notice overlay */
+  description: string
+  type: 'market_frozen' | 'token_seizure' | 'forced_transparency' | 'cease_and_desist'
+}
+
+export const FTC_PENALTIES: FtcPenalty[] = [
+  {
+    id: 'market_frozen',
+    name: 'Market Frozen',
+    type: 'market_frozen',
+    description:
+      'Pursuant to §47(b) of the Prediction Market Integrity Act, all proceeds from the flagged market have been frozen pending review. Your wager has been retained by the Commission as a processing fee. Appeal window: 6–8 business weeks.',
+  },
+  {
+    id: 'token_seizure',
+    name: 'Emergency Token Seizure',
+    type: 'token_seizure',
+    description:
+      'Under Emergency Order 2024-FTC-09, 20% of your Prophet Token holdings have been seized as a precautionary measure pending investigation. A formal notice will be mailed to your registered address. Thank you for your cooperation.',
+  },
+  {
+    id: 'forced_transparency',
+    name: 'Forced Transparency Compliance',
+    type: 'forced_transparency',
+    description:
+      'Effective immediately, your next market intervention must be conducted under enhanced compliance protocols, resulting in a 2× rate increase. Anonymity, as it turns out, is subject to market conditions. The Commission regrets the inconvenience.',
+  },
+  {
+    id: 'cease_and_desist',
+    name: 'Cease & Desist Order',
+    type: 'cease_and_desist',
+    description:
+      'The Federal Trade Commission has issued a temporary restraining order on all market manipulation activities associated with this account. Fix System access is suspended for the duration of the next shop phase. Continued violations will be escalated.',
+  },
+]
+
+// Trigger probability indexed by heat level (heat 0 = no fix used, never triggers)
+const FTC_HEAT_CHANCES = [0, 0.05, 0.15, 0.30, 0.50, 0.70] as const
+
+export function getFtcTriggerChance(heat: number): number {
+  return FTC_HEAT_CHANCES[Math.min(heat, FTC_HEAT_CHANCES.length - 1)]
+}
+
+export function rollFtcTrigger(heat: number): boolean {
+  if (heat === 0) return false
+  return Math.random() < getFtcTriggerChance(heat)
+}
+
+export function getRandomFtcPenalty(): FtcPenalty {
+  return FTC_PENALTIES[Math.floor(Math.random() * FTC_PENALTIES.length)]
+}
+
+export function getHeatLabel(heat: number): { label: string; color: string; animate: boolean } {
+  if (heat === 0) return { label: 'NONE', color: '#4A6A94', animate: false }
+  if (heat === 1) return { label: 'LOW', color: '#FF8844', animate: false }
+  if (heat <= 3) return { label: 'MED', color: '#FF6644', animate: false }
+  if (heat === 4) return { label: 'HIGH', color: '#FF4444', animate: false }
+  return { label: 'CRITICAL', color: '#FF4444', animate: true }
 }

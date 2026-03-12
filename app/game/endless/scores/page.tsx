@@ -28,18 +28,18 @@ export default function ScoresPage() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: '#080810', fontFamily: 'var(--font-mono)' }}
+      style={{ background: '#080F1E', fontFamily: 'var(--font-mono)' }}
     >
       {/* Header */}
       <div
         className="border-b px-4 py-1.5 flex items-center gap-4 text-xs"
-        style={{ borderColor: '#1e1e3a', background: '#0e0e1a' }}
+        style={{ borderColor: '#1A2E52', background: '#0E1A30' }}
       >
-        <span style={{ color: '#4488ff' }} className="uppercase tracking-widest">ENDLESS MODE</span>
-        <span style={{ color: '#3a3a5c' }}>|</span>
-        <span style={{ color: '#6a6a9a' }} className="uppercase tracking-wider">HIGH SCORES</span>
+        <span style={{ color: '#4488FF' }} className="uppercase tracking-widest">ENDLESS MODE</span>
+        <span style={{ color: '#4A6A94' }}>|</span>
+        <span style={{ color: '#6A8AB4' }} className="uppercase tracking-wider">HIGH SCORES</span>
         <span
-          style={{ color: blinkOn ? '#4488ff' : 'transparent' }}
+          style={{ color: blinkOn ? '#4488FF' : 'transparent' }}
           className="ml-auto"
         >
           ■
@@ -50,28 +50,28 @@ export default function ScoresPage() {
 
         {/* Title */}
         <div>
-          <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#3a3a5c' }}>
+          <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#4A6A94' }}>
             TOP 5 RUNS
           </div>
-          <h1 className="font-bold text-3xl" style={{ color: '#c8c8e8', letterSpacing: '-0.02em' }}>
+          <h1 className="font-bold text-3xl" style={{ color: '#C8DCF8', letterSpacing: '-0.02em' }}>
             ENDLESS MODE{' '}
-            <span style={{ color: '#4488ff' }}>HIGH SCORES</span>
+            <span style={{ color: '#4488FF' }}>HIGH SCORES</span>
           </h1>
-          <p className="mt-2 text-xs" style={{ color: '#6a6a9a' }}>
+          <p className="mt-2 text-xs" style={{ color: '#6A8AB4' }}>
             Ranked by correct predictions. Accuracy breaks ties.
           </p>
         </div>
 
         {/* Scoreboard */}
         {hasScores ? (
-          <div className="flex flex-col gap-0 border" style={{ borderColor: '#1e1e3a' }}>
+          <div className="flex flex-col gap-0 border" style={{ borderColor: '#1A2E52' }}>
             {/* Column headers */}
             <div
               className="grid text-xs uppercase tracking-widest px-4 py-2 border-b"
               style={{
-                borderColor: '#1e1e3a',
-                background: '#0e0e1a',
-                color: '#3a3a5c',
+                borderColor: '#1A2E52',
+                background: '#0E1A30',
+                color: '#4A6A94',
                 gridTemplateColumns: '2rem 1fr repeat(5, auto)',
                 gap: '1rem',
               }}
@@ -96,8 +96,8 @@ export default function ScoresPage() {
                   key={entry.id}
                   className="grid px-4 py-4 border-b last:border-b-0 text-sm items-center"
                   style={{
-                    borderColor: '#1e1e3a',
-                    background: isTop ? 'rgba(68,136,255,0.05)' : 'transparent',
+                    borderColor: '#1A2E52',
+                    background: isTop ? 'rgba(68,136,255,0.04)' : 'transparent',
                     gridTemplateColumns: '2rem 1fr repeat(5, auto)',
                     gap: '1rem',
                   }}
@@ -105,20 +105,20 @@ export default function ScoresPage() {
                   {/* Rank */}
                   <span
                     className="font-bold text-base"
-                    style={{ color: isTop ? '#4488ff' : '#3a3a5c' }}
+                    style={{ color: isTop ? '#4488FF' : '#4A6A94' }}
                   >
                     {i === 0 ? '★' : i + 1}
                   </span>
 
                   {/* Date */}
                   <div>
-                    <div className="text-xs" style={{ color: '#c8c8e8' }}>
+                    <div className="text-xs" style={{ color: '#C8DCF8' }}>
                       {entry.date}
                     </div>
                     {isTop && (
                       <div
                         className="text-[10px] uppercase tracking-wider mt-0.5"
-                        style={{ color: '#4488ff' }}
+                        style={{ color: '#4488FF' }}
                       >
                         BEST RUN
                       </div>
@@ -128,7 +128,7 @@ export default function ScoresPage() {
                   {/* Correct */}
                   <span
                     className="text-right font-bold"
-                    style={{ color: '#00ff88' }}
+                    style={{ color: '#00FF88' }}
                   >
                     {entry.totalCorrect}
                   </span>
@@ -137,7 +137,7 @@ export default function ScoresPage() {
                   <span
                     className="text-right"
                     style={{
-                      color: accuracy >= 60 ? '#00ff88' : accuracy >= 40 ? '#ffcc00' : '#ff4444',
+                      color: accuracy >= 60 ? '#00FF88' : accuracy >= 40 ? '#FFCC00' : '#FF4444',
                     }}
                   >
                     {accuracy}%
@@ -146,21 +146,21 @@ export default function ScoresPage() {
                   {/* Streak */}
                   <span
                     className="text-right"
-                    style={{ color: entry.bestStreak >= 5 ? '#ffcc00' : '#c8c8e8' }}
+                    style={{ color: entry.bestStreak >= 5 ? '#FFCC00' : '#C8DCF8' }}
                   >
                     {entry.bestStreak}
                     {entry.bestStreak >= 5 && ' 🔥'}
                   </span>
 
                   {/* Rounds */}
-                  <span className="text-right" style={{ color: '#6a6a9a' }}>
+                  <span className="text-right" style={{ color: '#6A8AB4' }}>
                     {entry.round}
                   </span>
 
                   {/* Final tokens */}
                   <span
                     className="text-right font-bold"
-                    style={{ color: entry.finalTokens > 0 ? '#00ff88' : '#ff4444' }}
+                    style={{ color: entry.finalTokens > 0 ? '#00FF88' : '#FF4444' }}
                   >
                     {entry.finalTokens > 0 ? `${entry.finalTokens} PT` : 'BANKRUPT'}
                   </span>
@@ -171,12 +171,12 @@ export default function ScoresPage() {
         ) : (
           <div
             className="border p-16 text-center"
-            style={{ borderColor: '#1e1e3a', background: '#0e0e1a' }}
+            style={{ borderColor: '#1A2E52', background: '#0E1A30' }}
           >
-            <div className="font-bold text-2xl mb-3" style={{ color: '#1e1e3a' }}>
+            <div className="font-bold text-2xl mb-3" style={{ color: '#1A2E52' }}>
               NO SCORES YET
             </div>
-            <p className="text-xs" style={{ color: '#3a3a5c' }}>
+            <p className="text-xs" style={{ color: '#4A6A94' }}>
               Complete an Endless Mode run to appear on the leaderboard.
               <br />
               Bankruptcy counts.
@@ -188,14 +188,14 @@ export default function ScoresPage() {
         {hasScores && (
           <div
             className="border p-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs"
-            style={{ borderColor: '#1e1e3a', background: '#0e0e1a', color: '#3a3a5c' }}
+            style={{ borderColor: '#1A2E52', background: '#0E1A30', color: '#4A6A94' }}
           >
-            <div><span style={{ color: '#00ff88' }}>CORRECT</span> — total winning bets placed</div>
-            <div><span style={{ color: '#ffcc00' }}>ACCURACY</span> — correct bets ÷ total bets</div>
-            <div><span style={{ color: '#4488ff' }}>STREAK</span> — best consecutive win streak</div>
-            <div><span style={{ color: '#c8c8e8' }}>ROUNDS</span> — rounds completed before bust</div>
-            <div><span style={{ color: '#00ff88' }}>FINAL PT</span> — tokens at end of run</div>
-            <div><span style={{ color: '#ff4444' }}>BANKRUPT</span> — went to zero. respectable.</div>
+            <div><span style={{ color: '#00FF88' }}>CORRECT</span> — total winning bets placed</div>
+            <div><span style={{ color: '#FFCC00' }}>ACCURACY</span> — correct bets ÷ total bets</div>
+            <div><span style={{ color: '#4488FF' }}>STREAK</span> — best consecutive win streak</div>
+            <div><span style={{ color: '#C8DCF8' }}>ROUNDS</span> — rounds completed before bust</div>
+            <div><span style={{ color: '#00FF88' }}>FINAL PT</span> — tokens at end of run</div>
+            <div><span style={{ color: '#FF4444' }}>BANKRUPT</span> — went to zero. respectable.</div>
           </div>
         )}
 
@@ -204,14 +204,14 @@ export default function ScoresPage() {
           <button
             onClick={() => router.push('/')}
             className="px-8 py-3 text-xs font-bold uppercase tracking-widest border-2 cursor-pointer transition-colors"
-            style={{ borderColor: '#4488ff', color: '#4488ff', background: 'transparent' }}
+            style={{ borderColor: '#4488FF', color: '#4488FF', background: 'transparent' }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = '#4488ff'
-              e.currentTarget.style.color = '#080810'
+              e.currentTarget.style.background = '#4488FF'
+              e.currentTarget.style.color = '#080F1E'
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#4488ff'
+              e.currentTarget.style.color = '#4488FF'
             }}
           >
             NEW RUN →
@@ -219,7 +219,7 @@ export default function ScoresPage() {
           <button
             onClick={() => router.push('/')}
             className="px-8 py-3 text-xs font-bold uppercase tracking-widest border cursor-pointer"
-            style={{ borderColor: '#1e1e3a', color: '#6a6a9a', background: 'transparent' }}
+            style={{ borderColor: '#1A2E52', color: '#6A8AB4', background: 'transparent' }}
           >
             ← BACK TO TERMINAL
           </button>
@@ -230,14 +230,14 @@ export default function ScoresPage() {
                 setScores([])
               }}
               className="ml-auto px-4 py-3 text-xs uppercase tracking-widest border cursor-pointer"
-              style={{ borderColor: '#1e1e3a', color: '#3a3a5c', background: 'transparent' }}
+              style={{ borderColor: '#1A2E52', color: '#4A6A94', background: 'transparent' }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = '#ff4444'
-                e.currentTarget.style.color = '#ff4444'
+                e.currentTarget.style.borderColor = '#FF4444'
+                e.currentTarget.style.color = '#FF4444'
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = '#1e1e3a'
-                e.currentTarget.style.color = '#3a3a5c'
+                e.currentTarget.style.borderColor = '#1A2E52'
+                e.currentTarget.style.color = '#4A6A94'
               }}
             >
               CLEAR SCORES
@@ -249,7 +249,7 @@ export default function ScoresPage() {
       {/* Footer */}
       <div
         className="border-t px-4 py-2 flex justify-between text-xs"
-        style={{ borderColor: '#1e1e3a', color: '#3a3a5c' }}
+        style={{ borderColor: '#1A2E52', color: '#4A6A94' }}
       >
         <span>PROPHIT ENDLESS · HIGH SCORES</span>
         <span>TOP 5 RUNS STORED LOCALLY</span>

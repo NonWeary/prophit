@@ -12,6 +12,7 @@ export interface Market {
   category: MarketCategory
   yesFlavorText: string
   noFlavorText: string
+  loreDrop?: string | null // injected at round generation time in Story Mode only
 }
 
 export const MARKET_POOL: Market[] = [

@@ -4,9 +4,10 @@ import type { Market } from '@/lib/markets'
 import { selectMarkets } from '@/lib/markets'
 import { getRelicById, getShopRelics } from '@/lib/relics'
 import type { Bet, MarketResult, FixInfo } from '@/lib/gameEngine'
-import { resolveRound, applyRoundStartEffects, effectiveWager } from '@/lib/gameEngine'
-import { selectStoryRoundMarkets, getChapterForRound, CHAPTER_MARKETS } from '@/lib/storyMarkets'
-import { getFixById, getFixesForShop } from '@/lib/fixes'
+import { resolveRound, applyRoundStartEffects, effectiveWager, CHAPTER_BLINDS } from '@/lib/gameEngine'
+import { selectStoryRoundMarkets, getChapterForRound, CHAPTER_MARKETS, injectLoreDrop } from '@/lib/storyMarkets'
+import type { FtcPenalty } from '@/lib/fixes'
+import { getFixById, getFixesForShop, rollFtcTrigger, getRandomFtcPenalty } from '@/lib/fixes'
 
 export type GamePhase =
   | 'landing'
@@ -64,6 +65,7 @@ export interface GameState {
   activeFixId: string | null
   activeFixMarketId: string | null
   activeFixGuaranteedOutcome: 'YES' | 'NO' | null
+  fixTargetRound: number | null
   // Stats (tracked in both modes, displayed prominently in Endless)
   currentStreak: number
   bestStreak: number
@@ -72,7 +74,12 @@ export interface GameState {
   totalEarned: number
   totalLost: number
   // Game over reason
-  gameOverReason: 'bankrupt' | null
+  gameOverReason: 'bankrupt' | 'blinded_out' | null
+  // FTC Interest System (Story Mode)
+  heat: number                  // cumulative fixes used this run
+  ftcLocked: boolean            // Cease & Desist: fix tab locked for current shop
+  ftcCostMultiplier: number     // Forced Transparency: 1 (normal) or 2 (doubled)
+  pendingFtcNotice: { penalty: FtcPenalty; tokenEffect: number } | null
 }
 
 export interface GameActions {
@@ -92,6 +99,7 @@ export interface GameActions {
   continueFromShop: () => void
   // Fix system
   purchaseFix: (fixId: string) => void
+  dismissFtcNotice: () => void
   // Navigation
   resetToLanding: () => void
   dismissChapterIntro: () => void
@@ -103,7 +111,7 @@ export interface GameActions {
 export type GameStore = GameState & GameActions
 
 const STARTING_TOKENS = 100
-const MARKETS_PER_ROUND = 3
+const MARKETS_PER_ROUND = 1
 const TOTAL_ROUNDS = 15
 const SHOP_EVERY = 3
 
@@ -141,6 +149,7 @@ const initialState: GameState = {
   activeFixId: null,
   activeFixMarketId: null,
   activeFixGuaranteedOutcome: null,
+  fixTargetRound: null,
   currentStreak: 0,
   bestStreak: 0,
   totalCorrect: 0,
@@ -148,6 +157,10 @@ const initialState: GameState = {
   totalEarned: 0,
   totalLost: 0,
   gameOverReason: null,
+  heat: 0,
+  ftcLocked: false,
+  ftcCostMultiplier: 1,
+  pendingFtcNotice: null,
 }
 
 // ── High Score helpers (separate localStorage key) ──────────────
@@ -180,7 +193,8 @@ function pickMarketsForRound(
 ): Market[] {
   if (mode === 'story') {
     const ch = Math.min(5, Math.max(1, chapter)) as 1 | 2 | 3 | 4 | 5
-    return selectStoryRoundMarkets(ch, usedMarketIds, activeFixMarketId)
+    const picked = selectStoryRoundMarkets(ch, usedMarketIds, activeFixMarketId)
+    return injectLoreDrop(picked, ch)
   }
   // Endless: full pool, no fix
   const markets = selectMarkets(MARKETS_PER_ROUND, usedMarketIds)
@@ -260,6 +274,7 @@ export const useGameStore = create<GameStore>()(
           currentMarkets, currentBets, relicIds, consecutiveCorrect,
           activeFixId, activeFixMarketId, activeFixGuaranteedOutcome,
           mode, round, bestStreak, totalCorrect, totalAttempted, totalEarned, totalLost,
+          heat,
         } = get()
         set({ phase: 'resolving' })
 
@@ -296,15 +311,47 @@ export const useGameStore = create<GameStore>()(
           }
 
           const newBestStreak = Math.max(bestStreak, newConsecutiveCorrect)
-
-          // Check if the fix was consumed
           const fixConsumed = fixInfo && results.some(r => r.market.id === fixInfo.marketId)
 
           const { tokens } = get()
-          const newTokens = tokens + totalNetChange
-          const bankrupt = newTokens <= 0
+          let newTokens = tokens + totalNetChange
 
-          // Save score for endless mode on bankruptcy
+          // ── FTC Interest check (story mode, fix consumed) ────────
+          let ftcTokenAdjustment = 0
+          let ftcLockNext = false
+          let ftcDoubleNext = false
+          let pendingFtcNotice: GameState['pendingFtcNotice'] = null
+          let newHeat = heat
+
+          if (fixConsumed && mode === 'story') {
+            newHeat = heat + 1
+            if (rollFtcTrigger(newHeat)) {
+              const penalty = getRandomFtcPenalty()
+
+              if (penalty.type === 'market_frozen') {
+                const fixedResult = results.find(r => r.market.id === fixInfo!.marketId)
+                if (fixedResult?.bet && fixedResult.netChange > 0) {
+                  // Confiscate the payout: reverse the gain AND lose the wager
+                  ftcTokenAdjustment = -(fixedResult.netChange + fixedResult.bet.wager)
+                }
+              } else if (penalty.type === 'token_seizure') {
+                ftcTokenAdjustment = -Math.floor(newTokens * 0.2)
+              } else if (penalty.type === 'forced_transparency') {
+                ftcDoubleNext = true
+              } else if (penalty.type === 'cease_and_desist') {
+                ftcLockNext = true
+              }
+
+              pendingFtcNotice = { penalty, tokenEffect: ftcTokenAdjustment }
+            }
+          }
+
+          const finalTokens = newTokens + ftcTokenAdjustment
+          const bankrupt = finalTokens <= 0
+
+          // Don't show notice if bankrupt — game over screen takes precedence
+          if (bankrupt) pendingFtcNotice = null
+
           if (bankrupt && mode === 'endless') {
             saveHighScore({
               id: Date.now().toString(),
@@ -323,7 +370,7 @@ export const useGameStore = create<GameStore>()(
             phase: bankrupt ? 'gameover' : 'results',
             currentResults: results,
             marketHistory: [...state.marketHistory, ...results],
-            tokens: bankrupt ? 0 : newTokens,
+            tokens: bankrupt ? 0 : finalTokens,
             consecutiveCorrect: newConsecutiveCorrect,
             lastRoundLoss: newLastRoundLoss,
             runWon: false,
@@ -334,10 +381,16 @@ export const useGameStore = create<GameStore>()(
             totalAttempted: newTotalAttempted,
             totalEarned: newTotalEarned,
             totalLost: newTotalLost,
-            // Clear fix if consumed
+            // Fix consumed
             activeFixId: fixConsumed ? null : state.activeFixId,
             activeFixMarketId: fixConsumed ? null : state.activeFixMarketId,
             activeFixGuaranteedOutcome: fixConsumed ? null : state.activeFixGuaranteedOutcome,
+            fixTargetRound: fixConsumed ? null : state.fixTargetRound,
+            // FTC
+            heat: newHeat,
+            ftcLocked: ftcLockNext ? true : state.ftcLocked,
+            ftcCostMultiplier: ftcDoubleNext ? 2 : state.ftcCostMultiplier,
+            pendingFtcNotice,
           }))
         }, 2400)
       },
@@ -346,7 +399,7 @@ export const useGameStore = create<GameStore>()(
       advanceRound: () => {
         const {
           round, tokens, relicIds, lastRoundLoss, usedMarketIds,
-          mode, chapter, activeFixMarketId,
+          mode, chapter, activeFixMarketId, fixTargetRound,
           bestStreak, totalCorrect, totalAttempted, totalEarned, totalLost,
         } = get()
 
@@ -375,7 +428,15 @@ export const useGameStore = create<GameStore>()(
         // Next betting round — chapter stays fixed until the shop gate passes
         const nextRound = round + 1
         const { newTokens, roundStartBonus } = applyRoundStartEffects(tokens, relicIds, lastRoundLoss)
-        const markets = pickMarketsForRound(mode, chapter, usedMarketIds, activeFixMarketId)
+
+        // Blind check: story mode only — can the player afford the minimum bet?
+        if (mode === 'story' && newTokens < CHAPTER_BLINDS[chapter as 1 | 2 | 3 | 4 | 5]) {
+          set({ phase: 'gameover', runWon: false, gameOverReason: 'blinded_out' })
+          return
+        }
+
+        const fixThisRound = nextRound === fixTargetRound ? activeFixMarketId : null
+        const markets = pickMarketsForRound(mode, chapter, usedMarketIds, fixThisRound)
 
         set({
           phase: 'betting',
@@ -408,15 +469,21 @@ export const useGameStore = create<GameStore>()(
 
       // ── Fix purchase ──────────────────────────────────────────
       purchaseFix: (fixId) => {
-        const { tokens, activeFixId } = get()
-        if (activeFixId) return // Only 1 fix at a time
+        const { tokens, activeFixId, ftcLocked, ftcCostMultiplier, round } = get()
+        if (activeFixId || ftcLocked) return // Only 1 fix at a time; locked by Cease & Desist
         const fix = getFixById(fixId)
-        if (!fix || tokens < fix.cost) return
+        if (!fix) return
+        const effectiveCost = fix.cost * ftcCostMultiplier
+        if (tokens < effectiveCost) return
+        // Randomly scatter the fix across any round in the upcoming chapter
+        const fixTargetRound = round + 1 + Math.floor(Math.random() * SHOP_EVERY)
         set({
-          tokens: tokens - fix.cost,
+          tokens: tokens - effectiveCost,
           activeFixId: fix.id,
           activeFixMarketId: fix.targetMarketId,
           activeFixGuaranteedOutcome: fix.guaranteedOutcome,
+          fixTargetRound,
+          ftcCostMultiplier: 1, // reset after one use
         })
       },
 
@@ -424,7 +491,7 @@ export const useGameStore = create<GameStore>()(
       continueFromShop: () => {
         const {
           round, tokens, relicIds, lastRoundLoss, usedMarketIds,
-          mode, chapter, activeFixMarketId,
+          mode, chapter, activeFixMarketId, fixTargetRound,
           bestStreak, totalCorrect, totalAttempted, totalEarned, totalLost,
         } = get()
         const nextRound = round + 1
@@ -444,7 +511,15 @@ export const useGameStore = create<GameStore>()(
           const nextChapter = canAdvance ? tentativeNext : chapter
 
           const { newTokens, roundStartBonus } = applyRoundStartEffects(tokens, relicIds, lastRoundLoss)
-          const markets = pickMarketsForRound('story', nextChapter, usedMarketIds, activeFixMarketId)
+
+          // Blind check: can the player afford the minimum bet for the upcoming chapter?
+          if (newTokens < CHAPTER_BLINDS[nextChapter as 1 | 2 | 3 | 4 | 5]) {
+            set({ phase: 'gameover', runWon: false, gameOverReason: 'blinded_out' })
+            return
+          }
+
+          const fixThisRound = nextRound === fixTargetRound ? activeFixMarketId : null
+          const markets = pickMarketsForRound('story', nextChapter, usedMarketIds, fixThisRound)
 
           set({
             phase: 'betting',
@@ -461,6 +536,7 @@ export const useGameStore = create<GameStore>()(
             firstYesBetPlaced: false,
             showChapterIntro: canAdvance,
             usedMarketIds: [...usedMarketIds, ...markets.map(m => m.id)],
+            ftcLocked: false, // Cease & Desist expires after each shop phase
           })
           return
         }
@@ -502,6 +578,8 @@ export const useGameStore = create<GameStore>()(
           usedMarketIds: [...usedMarketIds, ...markets.map(m => m.id)],
         })
       },
+
+      dismissFtcNotice: () => set({ pendingFtcNotice: null }),
 
       // ── Misc ──────────────────────────────────────────────────
       resetToLanding: () => set(initialState),
@@ -560,6 +638,7 @@ export const useGameStore = create<GameStore>()(
         activeFixId: state.activeFixId,
         activeFixMarketId: state.activeFixMarketId,
         activeFixGuaranteedOutcome: state.activeFixGuaranteedOutcome,
+        fixTargetRound: state.fixTargetRound,
         currentStreak: state.currentStreak,
         bestStreak: state.bestStreak,
         totalCorrect: state.totalCorrect,
@@ -567,6 +646,10 @@ export const useGameStore = create<GameStore>()(
         totalEarned: state.totalEarned,
         totalLost: state.totalLost,
         gameOverReason: state.gameOverReason,
+        heat: state.heat,
+        ftcLocked: state.ftcLocked,
+        ftcCostMultiplier: state.ftcCostMultiplier,
+        pendingFtcNotice: state.pendingFtcNotice,
       }),
     }
   )

@@ -471,28 +471,128 @@ export function selectStoryRoundMarkets(
 
   if (forceIncludeId) {
     const forced = available.find(m => m.id === forceIncludeId)
-    if (forced) {
-      const others = available.filter(m => m.id !== forceIncludeId)
-      const picked = [...others].sort(() => Math.random() - 0.5).slice(0, 2)
-      return [...picked, forced].sort(() => Math.random() - 0.5)
-    }
+    if (forced) return [forced]
     // Fixed market was already used — still force it from full pool
     const forcedFromFull = fullPool.find(m => m.id === forceIncludeId)
-    if (forcedFromFull) {
-      const others = available.filter(m => m.id !== forceIncludeId)
-      const picked = [...others].sort(() => Math.random() - 0.5).slice(0, 2)
-      return [...picked, forcedFromFull].sort(() => Math.random() - 0.5)
-    }
+    if (forcedFromFull) return [forcedFromFull]
   }
 
-  if (available.length < 3) {
+  if (available.length < 1) {
     // Pool exhausted — redraw from full chapter pool
-    return [...fullPool].sort(() => Math.random() - 0.5).slice(0, 3)
+    return [...fullPool].sort(() => Math.random() - 0.5).slice(0, 1)
   }
 
-  return [...available].sort(() => Math.random() - 0.5).slice(0, 3)
+  return [...available].sort(() => Math.random() - 0.5).slice(0, 1)
 }
 
 export function getChapterForRound(round: number): 1 | 2 | 3 | 4 | 5 {
   return Math.min(5, Math.ceil(round / 3)) as 1 | 2 | 3 | 4 | 5
+}
+
+// ── Story Mode Lore Drops ──────────────────────────────────────
+// Shown inside a market card as a small italicized note.
+// triggersAfterChapter: the drop only appears starting from chapter N+1.
+
+export interface LoreDrop {
+  triggersAfterChapter: number
+  text: string
+}
+
+export const LORE_DROPS: LoreDrop[] = [
+  // Unlocked from Chapter 2 onward (triggersAfterChapter: 1)
+  {
+    triggersAfterChapter: 1,
+    text: 'The barista still spells your name wrong. You\'ve stopped correcting her.',
+  },
+  {
+    triggersAfterChapter: 1,
+    text: 'The upstairs neighbor\'s vacuum schedule has become oddly reliable. You\'ve started timing your mornings around it.',
+  },
+  {
+    triggersAfterChapter: 1,
+    text: 'Word got around the building that someone "knows things." You moved to a better building.',
+  },
+  {
+    triggersAfterChapter: 1,
+    text: 'Your old vending machine is still broken. The new building has a concierge.',
+  },
+  {
+    triggersAfterChapter: 1,
+    text: 'Kevin from the trivia night called. You did not answer.',
+  },
+  // Unlocked from Chapter 3 onward (triggersAfterChapter: 2)
+  {
+    triggersAfterChapter: 2,
+    text: 'The oat milk corner play got a write-up in a supply chain newsletter. No name attached.',
+  },
+  {
+    triggersAfterChapter: 2,
+    text: 'The open mic artist from that night has a record deal now. You were not involved. Mostly.',
+  },
+  {
+    triggersAfterChapter: 2,
+    text: 'Your neighborhood is different now. You did that.',
+  },
+  {
+    triggersAfterChapter: 2,
+    text: 'Three people at the coffee shop reference "the oat milk incident" without knowing you were there.',
+  },
+  {
+    triggersAfterChapter: 2,
+    text: 'The city council member who lost the vote is now in real estate. You\'ve seen worse fates.',
+  },
+  // Unlocked from Chapter 4 onward (triggersAfterChapter: 3)
+  {
+    triggersAfterChapter: 3,
+    text: 'The rain at the mayor\'s press conference became a metaphor in three separate op-eds.',
+  },
+  {
+    triggersAfterChapter: 3,
+    text: 'The home team\'s hamstring injury is still under investigation. You are not mentioned anywhere.',
+  },
+  {
+    triggersAfterChapter: 3,
+    text: 'The page 3 article has been cited in academic literature on media framing. You find this funny.',
+  },
+  {
+    triggersAfterChapter: 3,
+    text: 'City hall passed a resolution. You were in a different city by then.',
+  },
+  // Unlocked from Chapter 5 onward (triggersAfterChapter: 4)
+  {
+    triggersAfterChapter: 4,
+    text: 'The short position cleared. The anonymous source was never identified. The rumor cycle lasted nine days.',
+  },
+  {
+    triggersAfterChapter: 4,
+    text: 'The senator\'s "evolved position" is now considered their defining policy moment. You don\'t follow politics.',
+  },
+  {
+    triggersAfterChapter: 4,
+    text: 'The viral moment has been studied in three communications dissertations. You seeded it from a burner.',
+  },
+  {
+    triggersAfterChapter: 4,
+    text: 'The Senate staffer retired to a consulting role. You sent flowers. You\'ve never sent flowers before.',
+  },
+]
+
+/**
+ * Injects a loreDrop into one randomly selected market, with 1-in-3 probability.
+ * Only drops with triggersAfterChapter < currentChapter are eligible.
+ * Mutates and returns a new array (markets are cloned, not mutated in place).
+ */
+export function injectLoreDrop(markets: Market[], currentChapter: number): Market[] {
+  if (currentChapter < 2) return markets // no lore in chapter 1
+  if (Math.random() > 1 / 3) return markets // 1-in-3 chance
+
+  const eligibleDrops = LORE_DROPS.filter(d => d.triggersAfterChapter < currentChapter)
+  if (eligibleDrops.length === 0) return markets
+
+  const drop = eligibleDrops[Math.floor(Math.random() * eligibleDrops.length)]
+  const targetIndex = Math.floor(Math.random() * markets.length)
+
+  return markets.map((m, i) =>
+    i === targetIndex ? { ...m, loreDrop: drop.text } : m
+  )
 }

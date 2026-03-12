@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #080810;
-  --color-surface: #0e0e1a;
-  --color-border: #1e1e3a;
-  --color-dim: #3a3a5c;
-  --color-muted: #6a6a9a;
-  --color-fg: #c8c8e8;
-  --color-green: #00ff88;
-  --color-red: #ff4444;
-  --color-gold: #ffcc00;
-  --color-blue: #4488ff;
+  --color-bg: #080F1E;
+  --color-surface: #0E1A30;
+  --color-border: #1A2E52;
+  --color-dim: #4A6A94;
+  --color-muted: #6A8AB4;
+  --color-fg: #C8DCF8;
+  --color-green: #00FF88;
+  --color-red: #FF4444;
+  --color-gold: #FFCC00;
+  --color-blue: #4488FF;
+  --color-purple: #AA44FF;
+  --color-orange: #FF8844;
+  --color-cyan: #44DDFF;
   --font-mono: var(--font-ibm-plex-mono), 'IBM Plex Mono', monospace;
 }
 
@@ -19,21 +22,21 @@
 }
 
 html {
-  background-color: #080810;
+  background-color: #080F1E;
 }
 
 body {
-  background-color: #080810;
-  color: #c8c8e8;
+  background-color: #080F1E;
+  color: #C8DCF8;
   font-family: var(--font-ibm-plex-mono), 'IBM Plex Mono', monospace;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #080810; }
-::-webkit-scrollbar-thumb { background: #1e1e3a; }
-::-webkit-scrollbar-thumb:hover { background: #3a3a5c; }
+::-webkit-scrollbar-track { background: #080F1E; }
+::-webkit-scrollbar-thumb { background: #1A2E52; }
+::-webkit-scrollbar-thumb:hover { background: #4A6A94; }
 
 /* Progress bar animation */
 @keyframes progress-fill {
@@ -54,10 +57,6 @@ body {
   97% { opacity: 1; }
 }
 
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
-}
 
 @keyframes token-bump {
   0% { transform: scale(1); }
@@ -80,3 +79,20 @@ body {
 .animate-token-bump { animation: token-bump 0.3s ease; }
 .animate-slide-up { animation: slide-up 0.25s ease; }
 .animate-blink { animation: blink 1s step-end infinite; }
+
+/* Perfect-round animations */
+@keyframes perfect-glow {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  55%  { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+
+@keyframes card-flash {
+  0%   { box-shadow: 0 0 0 0px rgba(0,255,136,0); }
+  20%  { box-shadow: 0 0 0 2px rgba(0,255,136,0.8), 0 0 28px 6px rgba(0,255,136,0.18); }
+  100% { box-shadow: 0 0 0 0px rgba(0,255,136,0); }
+}
+
+.animate-perfect-glow { animation: perfect-glow 1.2s ease-out forwards; }
+.animate-card-flash   { animation: card-flash 0.9s ease-out forwards; }

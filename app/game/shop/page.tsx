@@ -6,7 +6,7 @@ import { useGameStore, CHAPTER_TOKEN_REQUIREMENTS } from '@/store/gameStore'
 import RelicCard from '@/components/RelicCard'
 import TokenDisplay from '@/components/TokenDisplay'
 import { getRelicById } from '@/lib/relics'
-import { getFixById, getFixesForShop } from '@/lib/fixes'
+import { getFixById, getFixesForShop, getFtcTriggerChance, getHeatLabel } from '@/lib/fixes'
 import type { Fix } from '@/lib/fixes'
 import { CHAPTER_MARKETS } from '@/lib/storyMarkets'
 
@@ -23,6 +23,9 @@ export default function ShopPage() {
     activeFixId,
     activeFixMarketId,
     activeFixGuaranteedOutcome,
+    heat,
+    ftcLocked,
+    ftcCostMultiplier,
     buyRelic,
     continueFromShop,
     purchaseFix,
@@ -57,7 +60,7 @@ export default function ShopPage() {
   const canAdvanceChapter = chapterRequirement === null || tokens >= chapterRequirement
 
   const availableFixes: Fix[] = isStory && nextChapter <= 5
-    ? getFixesForShop(chapter)
+    ? getFixesForShop(nextChapter)
     : []
 
   const activeFix = activeFixId ? getFixById(activeFixId) : null
@@ -71,25 +74,25 @@ export default function ShopPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080810', fontFamily: 'var(--font-mono)' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#080F1E', fontFamily: 'var(--font-mono)' }}>
 
       {/* Header */}
       <header
         className="border-b px-4 py-3 flex items-center justify-between gap-4 shrink-0"
-        style={{ borderColor: '#1e1e3a', background: '#0e0e1a' }}
+        style={{ borderColor: '#1A2E52', background: '#0E1A30' }}
       >
         <div className="flex items-center gap-6">
-          <div className="text-xs uppercase tracking-widest" style={{ color: '#ffcc00' }}>
+          <div className="text-xs uppercase tracking-widest" style={{ color: '#FFCC00' }}>
             ▪ {shopTitle}
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span style={{ color: '#3a3a5c' }}>AFTER ROUND</span>
-            <span style={{ color: '#c8c8e8' }} className="font-bold">{round}</span>
+            <span style={{ color: '#4A6A94' }}>AFTER ROUND</span>
+            <span style={{ color: '#C8DCF8' }} className="font-bold">{round}</span>
           </div>
           {isStory && (
-            <div className="text-xs" style={{ color: '#3a3a5c' }}>
-              CH <span style={{ color: '#ffcc00' }}>{chapter}</span>
-              {nextChapter <= 5 && <span> → CH <span style={{ color: '#ffcc00' }}>{nextChapter}</span></span>}
+            <div className="text-xs" style={{ color: '#4A6A94' }}>
+              CH <span style={{ color: '#FFCC00' }}>{chapter}</span>
+              {nextChapter <= 5 && <span> → CH <span style={{ color: '#FFCC00' }}>{nextChapter}</span></span>}
             </div>
           )}
         </div>
@@ -97,22 +100,22 @@ export default function ShopPage() {
       </header>
 
       {/* Progress bar */}
-      <div className="h-0.5 w-full" style={{ background: '#1e1e3a' }}>
+      <div className="h-0.5 w-full" style={{ background: '#1A2E52' }}>
         <div
           className="h-full"
-          style={{ width: `${(round / 15) * 100}%`, background: '#ffcc00' }}
+          style={{ width: `${(round / 15) * 100}%`, background: '#FFCC00' }}
         />
       </div>
 
       {/* Tabs (Story Mode only) */}
       {isStory && (
-        <div className="border-b flex" style={{ borderColor: '#1e1e3a' }}>
+        <div className="border-b flex" style={{ borderColor: '#1A2E52' }}>
           <button
             onClick={() => setActiveTab('relics')}
             className="px-6 py-3 text-xs uppercase tracking-widest border-b-2 transition-colors cursor-pointer"
             style={{
-              borderColor: activeTab === 'relics' ? '#00ff88' : 'transparent',
-              color: activeTab === 'relics' ? '#00ff88' : '#3a3a5c',
+              borderColor: activeTab === 'relics' ? '#00FF88' : 'transparent',
+              color: activeTab === 'relics' ? '#00FF88' : '#4A6A94',
               background: 'transparent',
             }}
           >
@@ -122,8 +125,8 @@ export default function ShopPage() {
             onClick={() => setActiveTab('fix')}
             className="px-6 py-3 text-xs uppercase tracking-widest border-b-2 transition-colors cursor-pointer flex items-center gap-2"
             style={{
-              borderColor: activeTab === 'fix' ? '#ff4444' : 'transparent',
-              color: activeTab === 'fix' ? '#ff4444' : '#3a3a5c',
+              borderColor: activeTab === 'fix' ? '#FF4444' : 'transparent',
+              color: activeTab === 'fix' ? '#FF4444' : '#4A6A94',
               background: 'transparent',
             }}
           >
@@ -131,7 +134,7 @@ export default function ShopPage() {
             {activeFix && (
               <span
                 className="px-1 py-0.5 text-[10px] leading-none"
-                style={{ background: '#ff4444', color: '#080810' }}
+                style={{ background: '#FF4444', color: '#080F1E' }}
               >
                 ACTIVE
               </span>
@@ -147,24 +150,24 @@ export default function ShopPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               {!isStory && (
-                <div className="border-b pb-4 mb-6" style={{ borderColor: '#1e1e3a' }}>
-                  <h1 className="font-bold text-xl mb-2" style={{ color: '#c8c8e8' }}>
+                <div className="border-b pb-4 mb-6" style={{ borderColor: '#1A2E52' }}>
+                  <h1 className="font-bold text-xl mb-2" style={{ color: '#C8DCF8' }}>
                     RELIC SHOP
                   </h1>
-                  <p className="text-xs" style={{ color: '#6a6a9a' }}>
+                  <p className="text-xs" style={{ color: '#6A8AB4' }}>
                     Spend Prophet Tokens on cognitive relics that bend the rules of prediction.
                   </p>
                 </div>
               )}
 
-              <div className="text-xs uppercase tracking-widest mb-4" style={{ color: '#3a3a5c' }}>
+              <div className="text-xs uppercase tracking-widest mb-4" style={{ color: '#4A6A94' }}>
                 AVAILABLE RELICS ({offeredRelics.length})
               </div>
 
               {offeredRelics.length === 0 ? (
                 <div
                   className="border p-8 text-center text-xs"
-                  style={{ borderColor: '#1e1e3a', color: '#3a3a5c' }}
+                  style={{ borderColor: '#1A2E52', color: '#4A6A94' }}
                 >
                   YOU ALREADY OWN EVERYTHING.
                   <br />THE EMPORIUM HAS NOTHING LEFT TO OFFER.
@@ -186,17 +189,17 @@ export default function ShopPage() {
 
             {/* Sidebar */}
             <div className="flex flex-col gap-6">
-              <div className="border p-4" style={{ borderColor: '#1e1e3a', background: '#0e0e1a' }}>
-                <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#3a3a5c' }}>
+              <div className="border p-4" style={{ borderColor: '#1A2E52', background: '#0E1A30' }}>
+                <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#4A6A94' }}>
                   ACCOUNT BALANCE
                 </div>
-                <div className="font-bold text-2xl mb-1" style={{ color: '#00ff88' }}>{tokens} PT</div>
-                <div className="text-xs" style={{ color: '#3a3a5c' }}>PROPHET TOKENS REMAINING</div>
+                <div className="font-bold text-2xl mb-1" style={{ color: '#00FF88' }}>{tokens} PT</div>
+                <div className="text-xs" style={{ color: '#4A6A94' }}>PROPHET TOKENS REMAINING</div>
               </div>
 
               {ownedRelicObjects.length > 0 && (
                 <div>
-                  <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#3a3a5c' }}>
+                  <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#4A6A94' }}>
                     YOUR RELICS
                   </div>
                   <div className="flex flex-col gap-2">
@@ -208,7 +211,7 @@ export default function ShopPage() {
               )}
 
               {ownedRelicObjects.length === 0 && (
-                <div className="border p-4 text-xs" style={{ borderColor: '#1e1e3a', color: '#3a3a5c' }}>
+                <div className="border p-4 text-xs" style={{ borderColor: '#1A2E52', color: '#4A6A94' }}>
                   NO RELICS ACQUIRED YET.
                   <br />THE UNAUGMENTED MIND IS ITS OWN PRISON.
                 </div>
@@ -224,49 +227,82 @@ export default function ShopPage() {
               {/* Header */}
               <div
                 className="border-b pb-4 mb-6"
-                style={{ borderColor: '#2a0808' }}
+                style={{ borderColor: '#2A0808' }}
               >
-                <h1 className="font-bold text-xl mb-2" style={{ color: '#ff4444' }}>
+                <h1 className="font-bold text-xl mb-2" style={{ color: '#FF4444' }}>
                   THE FIX
                 </h1>
-                <p className="text-xs leading-relaxed" style={{ color: '#6a6a9a' }}>
+                <p className="text-xs leading-relaxed" style={{ color: '#6A8AB4' }}>
                   Spend Prophet Tokens to guarantee a specific market outcome in the next chapter.
                   One fix active at a time. Results are unambiguous. Your involvement is not.
                 </p>
               </div>
 
+              {/* FTC Cease & Desist lock banner */}
+              {ftcLocked && (
+                <div
+                  className="border p-4 mb-6 animate-slide-up"
+                  style={{ borderColor: '#FF4444', background: 'rgba(255,68,68,0.06)' }}
+                >
+                  <div className="text-xs uppercase tracking-widest mb-1 animate-blink" style={{ color: '#FF4444' }}>
+                    ⚠ CEASE & DESIST IN EFFECT
+                  </div>
+                  <p className="text-xs" style={{ color: '#6A8AB4' }}>
+                    The Fix System is suspended for this shop phase by order of the FTC. You may not
+                    purchase or arrange any market interventions at this time. The order expires after
+                    you continue to the next round.
+                  </p>
+                </div>
+              )}
+
+              {/* Forced Transparency banner */}
+              {!ftcLocked && ftcCostMultiplier > 1 && (
+                <div
+                  className="border p-3 mb-6"
+                  style={{ borderColor: '#FFCC00', background: 'rgba(255,204,0,0.06)' }}
+                >
+                  <div className="text-xs uppercase tracking-widest mb-1" style={{ color: '#FFCC00' }}>
+                    ⚠ ENHANCED COMPLIANCE ACTIVE
+                  </div>
+                  <p className="text-xs" style={{ color: '#6A8AB4' }}>
+                    Your next Fix purchase costs <span style={{ color: '#FFCC00' }}>2× the listed price</span> due
+                    to a Forced Transparency order. This surcharge applies to one transaction only.
+                  </p>
+                </div>
+              )}
+
               {/* Active fix notice */}
               {activeFix && (
                 <div
                   className="border p-4 mb-6"
-                  style={{ borderColor: '#2a0808', background: 'rgba(255,68,68,0.05)' }}
+                  style={{ borderColor: '#2A0808', background: 'rgba(255,68,68,0.04)' }}
                 >
-                  <div className="text-xs uppercase tracking-widest mb-2" style={{ color: '#ff4444' }}>
+                  <div className="text-xs uppercase tracking-widest mb-2" style={{ color: '#FF4444' }}>
                     FIX ACTIVE — AWAITING EXECUTION
                   </div>
-                  <div className="font-bold mb-1" style={{ color: '#c8c8e8' }}>{activeFix.name}</div>
+                  <div className="font-bold mb-1" style={{ color: '#C8DCF8' }}>{activeFix.name}</div>
                   {activeFixMarket && (
-                    <div className="text-xs mb-2" style={{ color: '#6a6a9a' }}>
-                      Target: <span style={{ color: '#c8c8e8' }}>&ldquo;{activeFixMarket.title}&rdquo;</span>
+                    <div className="text-xs mb-2" style={{ color: '#6A8AB4' }}>
+                      Target: <span style={{ color: '#C8DCF8' }}>&ldquo;{activeFixMarket.title}&rdquo;</span>
                     </div>
                   )}
-                  <div className="text-xs" style={{ color: '#3a3a5c' }}>
+                  <div className="text-xs" style={{ color: '#4A6A94' }}>
                     Guaranteed outcome:{' '}
                     <span
                       className="font-bold"
-                      style={{ color: activeFixGuaranteedOutcome === 'YES' ? '#00ff88' : '#ff4444' }}
+                      style={{ color: activeFixGuaranteedOutcome === 'YES' ? '#00FF88' : '#FF4444' }}
                     >
                       {activeFixGuaranteedOutcome}
                     </span>
-                    <span style={{ color: '#3a3a5c' }}> · Will appear in next round · Bet accordingly.</span>
+                    <span style={{ color: '#4A6A94' }}> · Will appear in next round · Bet accordingly.</span>
                   </div>
                 </div>
               )}
 
               {/* Available fixes */}
-              {!activeFix && nextChapter <= 5 && availableFixes.length > 0 && (
+              {!activeFix && !ftcLocked && nextChapter <= 5 && availableFixes.length > 0 && (
                 <>
-                  <div className="text-xs uppercase tracking-widest mb-4" style={{ color: '#3a3a5c' }}>
+                  <div className="text-xs uppercase tracking-widest mb-4" style={{ color: '#4A6A94' }}>
                     AVAILABLE FOR CHAPTER {nextChapter} ({availableFixes.length})
                   </div>
                   <div className="flex flex-col gap-4">
@@ -274,15 +310,16 @@ export default function ShopPage() {
                       const targetMarket = Object.values(CHAPTER_MARKETS)
                         .flat()
                         .find(m => m.id === fix.targetMarketId)
-                      const canAfford = tokens >= fix.cost
+                      const effectiveCost = fix.cost * ftcCostMultiplier
+                      const canAfford = tokens >= effectiveCost
 
                       return (
                         <div
                           key={fix.id}
                           className="border flex flex-col gap-3 p-4"
                           style={{
-                            borderColor: canAfford ? '#2a0808' : '#1e1e3a',
-                            background: canAfford ? 'rgba(255,68,68,0.04)' : '#0e0e1a',
+                            borderColor: canAfford ? '#2A0808' : '#1A2E52',
+                            background: canAfford ? 'rgba(255,68,68,0.03)' : '#0E1A30',
                             opacity: canAfford ? 1 : 0.6,
                           }}
                         >
@@ -291,29 +328,37 @@ export default function ShopPage() {
                             <div>
                               <div
                                 className="text-xs uppercase tracking-widest mb-1"
-                                style={{ color: '#ff4444' }}
+                                style={{ color: '#FF4444' }}
                               >
                                 ⚑ FIX
                               </div>
-                              <div className="font-bold" style={{ color: '#c8c8e8' }}>
+                              <div className="font-bold" style={{ color: '#C8DCF8' }}>
                                 {fix.name}
                               </div>
                             </div>
                             <div className="text-right shrink-0">
+                              {ftcCostMultiplier > 1 && (
+                                <div
+                                  className="text-[10px] line-through"
+                                  style={{ color: '#4A6A94' }}
+                                >
+                                  {fix.cost.toLocaleString()}
+                                </div>
+                              )}
                               <div
                                 className="font-bold text-sm"
-                                style={{ color: canAfford ? '#ffcc00' : '#3a3a5c' }}
+                                style={{ color: canAfford ? '#FFCC00' : '#4A6A94' }}
                               >
-                                {fix.cost.toLocaleString()}
+                                {effectiveCost.toLocaleString()}
                               </div>
-                              <div className="text-[10px] uppercase" style={{ color: '#3a3a5c' }}>
-                                tokens
+                              <div className="text-[10px] uppercase" style={{ color: '#4A6A94' }}>
+                                {ftcCostMultiplier > 1 ? '2× RATE' : 'tokens'}
                               </div>
                             </div>
                           </div>
 
                           {/* Description */}
-                          <p className="text-xs leading-relaxed" style={{ color: '#6a6a9a' }}>
+                          <p className="text-xs leading-relaxed" style={{ color: '#6A8AB4' }}>
                             {fix.description}
                           </p>
 
@@ -321,16 +366,16 @@ export default function ShopPage() {
                           {targetMarket && (
                             <div
                               className="border p-2 text-xs"
-                              style={{ borderColor: '#1e1e3a' }}
+                              style={{ borderColor: '#1A2E52' }}
                             >
-                              <div className="uppercase tracking-wider mb-1" style={{ color: '#3a3a5c' }}>
+                              <div className="uppercase tracking-wider mb-1" style={{ color: '#4A6A94' }}>
                                 GUARANTEES
                               </div>
-                              <div style={{ color: '#6a6a9a' }}>
+                              <div style={{ color: '#6A8AB4' }}>
                                 &ldquo;{targetMarket.title}&rdquo; →{' '}
                                 <span
                                   className="font-bold"
-                                  style={{ color: fix.guaranteedOutcome === 'YES' ? '#00ff88' : '#ff4444' }}
+                                  style={{ color: fix.guaranteedOutcome === 'YES' ? '#00FF88' : '#FF4444' }}
                                 >
                                   {fix.guaranteedOutcome}
                                 </span>
@@ -341,7 +386,7 @@ export default function ShopPage() {
                           {/* Flavor */}
                           <p
                             className="text-xs italic leading-relaxed border-l-2 pl-3"
-                            style={{ color: '#3a3a5c', borderColor: '#2a0808' }}
+                            style={{ color: '#4A6A94', borderColor: '#2A0808' }}
                           >
                             {fix.flavorText}
                           </p>
@@ -352,20 +397,20 @@ export default function ShopPage() {
                             disabled={!canAfford}
                             className="w-full py-2 text-xs font-bold uppercase tracking-widest border transition-colors"
                             style={{
-                              borderColor: canAfford ? '#ff4444' : '#1e1e3a',
-                              color: canAfford ? '#ff4444' : '#3a3a5c',
+                              borderColor: canAfford ? '#FF4444' : '#1A2E52',
+                              color: canAfford ? '#FF4444' : '#4A6A94',
                               background: 'transparent',
                               cursor: canAfford ? 'pointer' : 'not-allowed',
                             }}
                             onMouseEnter={e => {
                               if (canAfford) {
-                                e.currentTarget.style.background = '#ff4444'
-                                e.currentTarget.style.color = '#080810'
+                                e.currentTarget.style.background = '#FF4444'
+                                e.currentTarget.style.color = '#080F1E'
                               }
                             }}
                             onMouseLeave={e => {
                               e.currentTarget.style.background = 'transparent'
-                              e.currentTarget.style.color = canAfford ? '#ff4444' : '#3a3a5c'
+                              e.currentTarget.style.color = canAfford ? '#FF4444' : '#4A6A94'
                             }}
                           >
                             {canAfford ? 'ARRANGE THIS →' : 'INSUFFICIENT TOKENS'}
@@ -377,10 +422,10 @@ export default function ShopPage() {
                 </>
               )}
 
-              {!activeFix && (nextChapter > 5 || availableFixes.length === 0) && (
+              {!activeFix && !ftcLocked && (nextChapter > 5 || availableFixes.length === 0) && (
                 <div
                   className="border p-8 text-center text-xs"
-                  style={{ borderColor: '#1e1e3a', color: '#3a3a5c' }}
+                  style={{ borderColor: '#1A2E52', color: '#4A6A94' }}
                 >
                   {nextChapter > 5
                     ? 'NO FURTHER CHAPTERS TO FIX. YOU HAVE REACHED THE END.'
@@ -391,37 +436,74 @@ export default function ShopPage() {
 
             {/* Fix sidebar */}
             <div className="flex flex-col gap-6">
-              <div className="border p-4" style={{ borderColor: '#2a0808', background: 'rgba(255,68,68,0.04)' }}>
-                <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#ff4444' }}>
+              {/* FTC Heat indicator */}
+              {(() => {
+                const heatInfo = getHeatLabel(heat)
+                const nextChance = getFtcTriggerChance(heat + 1)
+                return (
+                  <div
+                    className="border p-4"
+                    style={{ borderColor: heat >= 4 ? '#2A0808' : '#1A2E52', background: heat >= 4 ? 'rgba(255,68,68,0.04)' : '#0E1A30' }}
+                  >
+                    <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#4A6A94' }}>
+                      FTC INTEREST LEVEL
+                    </div>
+                    <div
+                      className={`font-bold text-xl mb-1${heatInfo.animate ? ' animate-blink' : ''}`}
+                      style={{ color: heatInfo.color }}
+                    >
+                      {heatInfo.label}
+                    </div>
+                    <div className="text-xs mb-3" style={{ color: '#4A6A94' }}>
+                      {heat} fix{heat !== 1 ? 'es' : ''} used this run
+                    </div>
+                    {heat > 0 && (
+                      <div className="text-xs border-t pt-3" style={{ borderColor: '#1A2E52', color: '#6A8AB4' }}>
+                        Next fix carries a{' '}
+                        <span style={{ color: heatInfo.color }}>{Math.round(nextChance * 100)}%</span>
+                        {' '}chance of FTC intervention on resolution.
+                      </div>
+                    )}
+                    {heat === 0 && (
+                      <div className="text-xs" style={{ color: '#4A6A94' }}>
+                        No fixes used yet. The Commission is not watching. Yet.
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              <div className="border p-4" style={{ borderColor: '#2A0808', background: 'rgba(255,68,68,0.03)' }}>
+                <div className="text-xs uppercase tracking-widest mb-3" style={{ color: '#FF4444' }}>
                   ACCOUNT BALANCE
                 </div>
-                <div className="font-bold text-2xl mb-1" style={{ color: '#00ff88' }}>{tokens} PT</div>
-                <div className="text-xs" style={{ color: '#3a3a5c' }}>PROPHET TOKENS AVAILABLE</div>
+                <div className="font-bold text-2xl mb-1" style={{ color: '#00FF88' }}>{tokens} PT</div>
+                <div className="text-xs" style={{ color: '#4A6A94' }}>PROPHET TOKENS AVAILABLE</div>
               </div>
 
               <div
                 className="border p-4 text-xs leading-relaxed"
-                style={{ borderColor: '#1e1e3a', color: '#3a3a5c' }}
+                style={{ borderColor: '#1A2E52', color: '#4A6A94' }}
               >
-                <div className="uppercase tracking-widest mb-2" style={{ color: '#ff4444' }}>
+                <div className="uppercase tracking-widest mb-2" style={{ color: '#FF4444' }}>
                   HOW FIXES WORK
                 </div>
                 <div className="flex flex-col gap-2">
                   <p>Buy a Fix to guarantee a specific market resolves a specific way.</p>
                   <p>The fixed market will appear in the next round. Bet on it. Win.</p>
                   <p>Only 1 Fix can be active at a time.</p>
-                  <p style={{ color: '#2a0808' }}>You were never here.</p>
+                  <p style={{ color: '#2A0808' }}>You were never here.</p>
                 </div>
               </div>
 
               {activeFix && (
                 <div
                   className="border p-3 text-xs"
-                  style={{ borderColor: '#2a0808', background: 'rgba(255,68,68,0.05)', color: '#ff4444' }}
+                  style={{ borderColor: '#2A0808', background: 'rgba(255,68,68,0.04)', color: '#FF4444' }}
                 >
                   <div className="uppercase tracking-widest mb-1">FIX STATUS</div>
-                  <div style={{ color: '#c8c8e8' }}>{activeFix.name}</div>
-                  <div className="mt-1" style={{ color: '#3a3a5c' }}>Pending execution in next round.</div>
+                  <div style={{ color: '#C8DCF8' }}>{activeFix.name}</div>
+                  <div className="mt-1" style={{ color: '#4A6A94' }}>Pending execution in next round.</div>
                 </div>
               )}
             </div>
@@ -433,21 +515,21 @@ export default function ShopPage() {
           <div
             className="border p-4 flex items-center justify-between gap-6"
             style={{
-              borderColor: canAdvanceChapter ? '#1e1e3a' : '#2a1a00',
-              background: canAdvanceChapter ? '#0e0e1a' : 'rgba(255,204,0,0.04)',
+              borderColor: canAdvanceChapter ? '#1A2E52' : '#FFCC00',
+              background: canAdvanceChapter ? '#0E1A30' : 'rgba(255,204,0,0.05)',
             }}
           >
             <div>
-              <div className="text-xs uppercase tracking-widest mb-1" style={{ color: '#3a3a5c' }}>
+              <div className="text-xs uppercase tracking-widest mb-1" style={{ color: '#4A6A94' }}>
                 CHAPTER {nextChapter} ENTRY REQUIREMENT
               </div>
-              <div className="text-sm" style={{ color: canAdvanceChapter ? '#c8c8e8' : '#ffcc00' }}>
+              <div className="text-sm" style={{ color: canAdvanceChapter ? '#C8DCF8' : '#FFCC00' }}>
                 {chapterRequirement} PT required to advance
               </div>
               {!canAdvanceChapter && (
-                <div className="text-xs mt-1" style={{ color: '#6a6a9a' }}>
+                <div className="text-xs mt-1" style={{ color: '#6A8AB4' }}>
                   You need{' '}
-                  <span style={{ color: '#ffcc00' }}>{chapterRequirement - tokens} more PT</span>
+                  <span style={{ color: '#FFCC00' }}>{chapterRequirement - tokens} more PT</span>
                   {' '}— you&apos;ll replay Chapter {chapter} until you have enough.
                 </div>
               )}
@@ -455,11 +537,11 @@ export default function ShopPage() {
             <div className="text-right shrink-0">
               <div
                 className="font-bold text-lg"
-                style={{ color: canAdvanceChapter ? '#00ff88' : '#ff4444' }}
+                style={{ color: canAdvanceChapter ? '#00FF88' : '#FF4444' }}
               >
                 {tokens} PT
               </div>
-              <div className="text-xs uppercase tracking-widest" style={{ color: canAdvanceChapter ? '#00ff88' : '#ff4444' }}>
+              <div className="text-xs uppercase tracking-widest" style={{ color: canAdvanceChapter ? '#00FF88' : '#FF4444' }}>
                 {canAdvanceChapter ? 'READY' : 'SHORT'}
               </div>
             </div>
@@ -467,28 +549,28 @@ export default function ShopPage() {
         )}
 
         {/* Continue button */}
-        <div className="flex justify-end border-t pt-6" style={{ borderColor: '#1e1e3a' }}>
+        <div className="flex justify-end border-t pt-6" style={{ borderColor: '#1A2E52' }}>
           <div className="flex flex-col items-end gap-2">
-            <div className="text-xs" style={{ color: '#3a3a5c' }}>
+            <div className="text-xs" style={{ color: '#4A6A94' }}>
               NEXT: ROUND {round + 1}
               {isStory && canAdvanceChapter && nextChapter <= 5 && (
-                <span style={{ color: '#ffcc00' }}> · CHAPTER {nextChapter}</span>
+                <span style={{ color: '#FFCC00' }}> · CHAPTER {nextChapter}</span>
               )}
               {isStory && !canAdvanceChapter && (
-                <span style={{ color: '#ffcc00' }}> · REPLAY CHAPTER {chapter}</span>
+                <span style={{ color: '#FFCC00' }}> · REPLAY CHAPTER {chapter}</span>
               )}
             </div>
             <button
               onClick={handleContinue}
               className="px-10 py-4 text-sm font-bold uppercase tracking-widest border-2 cursor-pointer transition-colors"
-              style={{ borderColor: '#00ff88', color: '#00ff88', background: 'transparent' }}
+              style={{ borderColor: '#00FF88', color: '#00FF88', background: 'transparent' }}
               onMouseEnter={e => {
-                e.currentTarget.style.background = '#00ff88'
-                e.currentTarget.style.color = '#080810'
+                e.currentTarget.style.background = '#00FF88'
+                e.currentTarget.style.color = '#080F1E'
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = '#00ff88'
+                e.currentTarget.style.color = '#00FF88'
               }}
             >
               CONTINUE →
@@ -500,7 +582,7 @@ export default function ShopPage() {
       {/* Footer */}
       <footer
         className="border-t px-4 py-2 flex justify-between text-xs shrink-0"
-        style={{ borderColor: '#1e1e3a', color: '#3a3a5c' }}
+        style={{ borderColor: '#1A2E52', color: '#4A6A94' }}
       >
         <span>{shopTitle}</span>
         <span>RELICS NON-REFUNDABLE · FIXES IRREVERSIBLE · YOU WERE NEVER HERE</span>

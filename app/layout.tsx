@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={ibmPlexMono.variable}>
-      <body className="antialiased min-h-screen bg-[#080810]">
+      <body className="antialiased min-h-screen bg-[#080F1E]">
         {children}
       </body>
     </html>
